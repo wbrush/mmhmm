@@ -6,6 +6,8 @@ This test is mostly completed. I would have liked to spend more time on the unit
 been adding to ever since. With this framework, I prefer to write unit tests to test individual functions that process data. Since there weren't really any of those here, there aren't many unit tests. I 
 prefer to do testing of the REST endpoints with integration tests. This tests the full functionality of the endpoint including interacting with the DB. 
 
+Note: this service is currently configured to work with postgresql running locally. The service will read the environment variables configured in the "/files" directory to point to the correct DB.
+
 ## Test Task
 GOAL
 We would like you to create the backend for a simple multi-user note taking application that allows each
@@ -34,6 +36,8 @@ simplified the data structure to only the values I needed for this exercise.
 go build -ldflags "-X main.commit=`git rev-parse --short HEAD` -X main.builtAt=`date +%FT%T%z`"
 
 This will insert the current values in to the executable and the commit can be used as a version tracker. Unfortunately, this command works only in unix (or unix shell like Ming64) and I haven't found the correct syntax for windows yet.
+
+- This service uses ".env" files to load environment variables which configure the service operation. The ".env" file must reside in the "/files" subdirectory.
 
 # Development Notes
 
@@ -91,7 +95,7 @@ Need to document (and/or update) the deployment process here
 This would spell out the deployment steps once developed and tested.
 
 ## Running locally
-To run this locally, you would need to have the go compiler installed. I can add the windows executable to the repo if needed. To run locally:
+To run this locally, you would need to have the go compiler and postgresql installed. I can add the windows executable to the repo if needed. To run locally:
 1. run the command "go get github.com/wbrush/mmhmm" from the command line
 2. if on unix, run " go build -ldflags "-X main.commit=`git rev-parse --short HEAD` -X main.builtAt=`date +%FT%T%z`" "
 3. if on windows, run "go build"
