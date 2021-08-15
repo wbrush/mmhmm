@@ -1,6 +1,13 @@
 package postgres
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"net/url"
+
+	"github.com/go-pg/pg"
+	"github.com/go-pg/urlstruct"
 	"github.com/wbrush/go-common/db"
 	"github.com/wbrush/mmhmm/models"
 )
@@ -18,114 +25,77 @@ func (d *PgDAO) CreateUser(user *models.User) (isDuplicate bool, err error) {
 	return false, nil
 }
 
-// func (d *PgDAO) GetTemplateById(shardId int64, id int64) (template *datamodels.Template, isFound bool, err error) {
-// 	if !d.ValidateCluster(shardId) {
-// 		err = errors.New("cluster is not ready yet")
-// 		return
-// 	}
+func (d *PgDAO) GetUserById(id int) (user *models.User, isFound bool, err error) {
+	user = &models.User{Id: id}
+	err = d.BaseDB.Select(user)
+	if err != nil {
+		if err == pg.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
 
-// 	template = &datamodels.Template{Id: id}
-// 	err = d.Cluster.Shard(shardId).Select(template)
-// 	if err != nil {
-// 		if err == pg.ErrNoRows {
-// 			return nil, false, nil
-// 		}
-// 		return nil, false, err
-// 	}
+	return user, true, nil
+}
 
-// 	selfPath := d.buildSelfPath(template.Id)
+// ListTemplates returns empty array if nothing was found
+func (d *PgDAO) ListUsers(filters url.Values) (list []models.User, err error) {
+	list = make([]models.User, 0)
 
-// 	//TODO really need this?
-// 	if !strings.EqualFold(template.TemplateSelf, selfPath) {
-// 		//means self path changed
-// 		template.TemplateSelf = selfPath
-// 		err = d.Cluster.Shard(shardId).Update(template)
-// 		if err != nil {
-// 			return template, true, err
-// 		}
-// 	}
+	//  NOTE: this is case sensitive. Need to use the new method if want case insensitive queries
+	pf, err := db.PrepareFiltersByModel(filters, models.User{})
+	if err != nil {
+		return list, err
+	}
+	//also check unknown fields errors
+	if len(pf.Errors) > 0 {
+		return list, fmt.Errorf("%v", pf.Errors)
+	}
 
-// 	return template, true, nil
-// }
+	f := new(models.User)
+	err = urlstruct.Unmarshal(context.Background(), pf.Prepared, f)
+	if err != nil {
+		return list, err
+	}
 
-// // ListTemplates returns empty array if nothing was found
-// func (d *PgDAO) ListTemplates(shardId int64, filters url.Values) (list []datamodels.Template, total int, hasMore bool, err error) {
-// 	if !d.ValidateCluster(shardId) {
-// 		err = errors.New("cluster is not ready yet")
-// 		return
-// 	}
+	q := d.BaseDB.Model(&list).
+		WhereStruct(f)
 
-// 	list = make([]datamodels.Template, 0)
-// 	hasMore = false
+	q, err = db.ApplyDefaultFilters(q, pf.Prepared)
+	if err != nil {
+		return list, err
+	}
 
-// 	pf, err := db.PrepareFiltersByModel(filters, datamodels.Template{})
-// 	if err != nil {
-// 		return list, 0, hasMore, err
-// 	}
-// 	//also check unknown fields errors
-// 	if len(pf.Errors) > 0 {
-// 		return list, 0, hasMore, fmt.Errorf("%v", pf.Errors)
-// 	}
+	err = q.Select()
+	if err != nil && err != pg.ErrNoRows {
+		return list, err
+	}
 
-// 	f := new(datamodels.TemplateFilter)
-// 	err = urlstruct.Unmarshal(context.Background(), pf.Prepared, f)
-// 	if err != nil {
-// 		return list, 0, hasMore, err
-// 	}
+	return list, nil
+}
 
-// 	q := d.Cluster.Shard(shardId).Model(&list).
-// 		WhereStruct(f).
-// 		Limit(f.Pager.Limit).
-// 		Offset(f.Pager.GetOffset())
+func (d *PgDAO) UpdateUserById(user *models.User) (err error) {
+	result, err := d.BaseDB.Model(user).WherePK().Update()
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		err = errors.New("No record found with given id!")
+		return err
+	}
 
-// 	q, err = db.ApplyDefaultFilters(q, pf.Prepared)
-// 	if err != nil {
-// 		return list, 0, hasMore, err
-// 	}
+	return nil
+}
 
-// 	total, err = q.SelectAndCount()
-// 	if err != nil && err != pg.ErrNoRows {
-// 		return list, total, hasMore, err
-// 	}
+func (d *PgDAO) DeleteUserById(id int) (isFound bool, err error) {
+	user := models.User{Id: id}
+	result, err := d.BaseDB.Model(&user).WherePK().Delete()
+	if err != nil {
+		return false, err
+	}
+	if result.RowsAffected() == 0 {
+		return false, nil
+	}
 
-// 	if len(list) > 0 {
-// 		hasMore, err = q.Where("?TableAlias.id > ?", list[len(list)-1].Id).Exists()
-// 		if err != nil && err != pg.ErrNoRows {
-// 			return list, total, hasMore, err
-// 		}
-// 	}
-
-// 	return list, total, hasMore, nil
-// }
-
-// func (d *PgDAO) UpdateTemplate(shardId int64, template *datamodels.Template) (err error) {
-// 	if !d.ValidateCluster(shardId) {
-// 		err = errors.New("cluster is not ready yet")
-// 		return
-// 	}
-
-// 	err = d.Cluster.Shard(shardId).Update(template)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-// func (d *PgDAO) DeleteTemplateById(shardId int64, id int64) (isFound bool, err error) {
-// 	if !d.ValidateCluster(shardId) {
-// 		err = errors.New("cluster is not ready yet")
-// 		return
-// 	}
-
-// 	template := datamodels.Template{Id: id}
-// 	res, err := d.Cluster.Shard(shardId).Model(&template).WherePK().Delete()
-// 	if err != nil {
-// 		return false, err
-// 	}
-// 	if res.RowsAffected() == 0 {
-// 		return false, nil
-// 	}
-
-// 	return true, nil
-// }
+	return true, nil
+}

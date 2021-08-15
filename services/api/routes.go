@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/urfave/negroni"
-	"github.com/wbrush/go-common/httphelper"
 	"github.com/wbrush/mmhmm/configuration"
 )
 
@@ -29,41 +28,46 @@ func (api *API) initRoutes(wrapper *negroni.Negroni) {
 		},
 	})
 	api.HandleActions(wrapper, configuration.APIBasePath+configuration.APIVersion, []Route{
-		//  application specific
+		//  application specific - Users
 		{
 			Name:        "Create User",
 			Method:      "POST",
 			Pattern:     UserPath,
 			HandlerFunc: api.CreateUser,
-			Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
+			Middleware:  nil,
+			// Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
 		},
-		// {
-		// 	Name:        "Get Template",
-		// 	Method:      "GET",
-		// 	Pattern:     TemplatePath + "/{id}",
-		// 	HandlerFunc: api.GetTemplate,
-		// 	Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
-		// },
-		// {
-		// 	Name:        "List Templates",
-		// 	Method:      "GET",
-		// 	Pattern:     TemplatePath,
-		// 	HandlerFunc: api.ListTemplates,
-		// 	Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
-		// },
-		// {
-		// 	Name:        "Update Template",
-		// 	Method:      "PUT",
-		// 	Pattern:     TemplatePath + "/{id}",
-		// 	HandlerFunc: api.UpdateTemplate,
-		// 	Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
-		// },
-		// {
-		// 	Name:        "Remove Template",
-		// 	Method:      "DELETE",
-		// 	Pattern:     TemplatePath + "/{id}",
-		// 	HandlerFunc: api.DeleteTemplate,
-		// 	Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
-		// },
+		{
+			Name:        "Get User",
+			Method:      "GET",
+			Pattern:     UserPath + "/{id}",
+			HandlerFunc: api.GetUser,
+			Middleware:  nil,
+			// Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
+		},
+		{
+			Name:        "List Users",
+			Method:      "GET",
+			Pattern:     UserPath,
+			HandlerFunc: api.ListUsers,
+			Middleware:  nil,
+			// Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
+		},
+		{
+			Name:        "Update User",
+			Method:      "PUT",
+			Pattern:     UserPath + "/{id}",
+			HandlerFunc: api.UpdateUser,
+			Middleware:  nil,
+			// Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
+		},
+		{
+			Name:        "Remove User",
+			Method:      "DELETE",
+			Pattern:     UserPath + "/{id}",
+			HandlerFunc: api.DeleteUser,
+			Middleware:  nil,
+			// Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
+		},
 	})
 }

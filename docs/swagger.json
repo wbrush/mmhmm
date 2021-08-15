@@ -8,7 +8,7 @@
     "application/json"
   ],
   "schemes": [
-    "https"
+    "http"
   ],
   "swagger": "2.0",
   "info": {
@@ -51,6 +51,90 @@
         }
       }
     },
+    "/notes": {
+      "get": {
+        "tags": [
+          "entries"
+        ],
+        "operationId": "listNotes"
+      },
+      "post": {
+        "description": "returns new Template",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "entries"
+        ],
+        "summary": "Create new Template",
+        "operationId": "createNote",
+        "parameters": [
+          {
+            "description": "Template object that needs to be added",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GlobalTemplateStruct"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/GlobalTemplateStruct"
+            }
+          }
+        }
+      }
+    },
+    "/notes/{id}": {
+      "get": {
+        "description": "returns Template",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "entries"
+        ],
+        "summary": "Get Template by given id",
+        "operationId": "getNote",
+        "parameters": [
+          {
+            "type": "number",
+            "description": "Numeric ID of the Template to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/GlobalTemplateStruct"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "entries"
+        ],
+        "operationId": "updateNote"
+      },
+      "delete": {
+        "description": "Numeric ID of the Template to delete",
+        "tags": [
+          "entries"
+        ],
+        "operationId": "DeleteNote"
+      }
+    },
     "/ping": {
       "get": {
         "description": "returns clean JSON object to check that everything is fine",
@@ -78,34 +162,32 @@
         }
       }
     },
-    "/template": {
+    "/v1/users": {
       "get": {
-        "tags": [
-          "entries"
-        ],
-        "operationId": "listTemplates"
-      },
-      "post": {
-        "description": "returns new Template",
-        "consumes": [
-          "application/json"
-        ],
+        "description": "returns users list",
         "produces": [
           "application/json"
         ],
         "tags": [
-          "entries"
+          "Users"
         ],
-        "summary": "Create new Template",
-        "operationId": "createTemplate",
+        "summary": "Return list of users",
+        "operationId": "listUsers",
         "parameters": [
           {
-            "description": "Template object that needs to be added",
-            "name": "body",
-            "in": "body",
-            "required": true,
+            "description": "on which field results must to be ordered",
+            "name": "orderBy",
+            "in": "query",
             "schema": {
-              "$ref": "#/definitions/GlobalTemplateStruct"
+              "type": "string"
+            }
+          },
+          {
+            "description": "filters on fields, which can be provided in format described here: https://godoc.org/github.com/go-pg/pg/urlvalues#Filter",
+            "name": "filters",
+            "in": "query",
+            "schema": {
+              "type": "object"
             }
           }
         ],
@@ -113,28 +195,63 @@
           "200": {
             "description": "OK",
             "schema": {
-              "type": "object",
-              "$ref": "#/definitions/GlobalTemplateStruct"
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/UserStruct"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "description": "returns new user",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create new user",
+        "operationId": "CreateUser",
+        "parameters": [
+          {
+            "description": "User object that needs to be added",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UserStruct"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/UserStruct"
             }
           }
         }
       }
     },
-    "/template/{id}": {
+    "/v1/users/{id}": {
       "get": {
-        "description": "returns Template",
+        "description": "returns user",
         "produces": [
           "application/json"
         ],
         "tags": [
-          "entries"
+          "Users"
         ],
-        "summary": "Get Template by given id",
-        "operationId": "getTemplate",
+        "summary": "Get User by given id",
+        "operationId": "getUser",
         "parameters": [
           {
             "type": "number",
-            "description": "Numeric ID of the Template to get",
+            "description": "Numeric ID of the user to get",
             "name": "id",
             "in": "path",
             "required": true
@@ -144,24 +261,75 @@
           "200": {
             "description": "OK",
             "schema": {
-              "type": "object",
-              "$ref": "#/definitions/GlobalTemplateStruct"
+              "$ref": "#/definitions/UserStruct"
             }
           }
         }
       },
       "put": {
-        "tags": [
-          "entries"
+        "description": "returns user",
+        "produces": [
+          "application/json"
         ],
-        "operationId": "updateTemplate"
+        "tags": [
+          "Users"
+        ],
+        "summary": "Update User by given id",
+        "operationId": "updateUser",
+        "parameters": [
+          {
+            "type": "number",
+            "description": "Numeric ID of the user to update",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "User object that needs to be updated",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UserStruct"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/UserStruct"
+            }
+          }
+        }
       },
       "delete": {
-        "description": "Numeric ID of the Template to delete",
-        "tags": [
-          "entries"
+        "description": "returns id",
+        "produces": [
+          "application/json"
         ],
-        "operationId": "deleteTemplate"
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete user by given id",
+        "operationId": "deleteUser",
+        "parameters": [
+          {
+            "type": "number",
+            "description": "Numeric ID of the User to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
       }
     }
   },
@@ -220,6 +388,26 @@
       },
       "x-go-name": "JsonValues",
       "x-go-package": "github.com/wbrush/mmhmm/services/api"
+    },
+    "UserStruct": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "x-go-name": "FirstName"
+        },
+        "lastName": {
+          "type": "string",
+          "x-go-name": "LastName"
+        },
+        "userId": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Id"
+        }
+      },
+      "x-go-name": "User",
+      "x-go-package": "github.com/wbrush/mmhmm/models"
     }
   },
   "securityDefinitions": {
