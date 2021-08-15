@@ -18,7 +18,7 @@ func (d *PgDAO) CreateNote(note *models.Note) (isDuplicate bool, err error) {
 
 		//  if not, add them
 		if !found || note.Author.Id <= 0 {
-			logrus.Debug("adding author %s %s", note.Author.FirstName, note.Author.LastName)
+			logrus.Debugf("adding author %s %s", note.Author.FirstName, note.Author.LastName)
 			_, err = d.CreateUser(note.Author)
 			if err != nil {
 				return errors.New("Error Creating User: " + err.Error())
