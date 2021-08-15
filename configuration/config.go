@@ -9,14 +9,6 @@ import (
 
 type (
 	Config struct {
-		Version string `json:"version"`
-		BuiltAt string `json:"builtAt"`
-
-		Host     string `json:"host"`
-		Port     string `json:"port"`
-		Environ  string `json:"environ"`
-		LogLevel string `json:"logLevel`
-
 		config.ServiceParams
 		config.DbParams
 
@@ -48,11 +40,11 @@ func InitConfig(commit, builtAt string) *Config {
 		},
 
 		DbParams: config.DbParams{
-			Host:     os.Getenv("LOG_LEVEL"),
+			Host:     os.Getenv("DB_HOST"),
 			Port:     os.Getenv("DB_PORT"),
 			User:     os.Getenv("DB_USER"),
 			Password: os.Getenv("DB_PASSWORD"),
-			Database: os.Getenv("DATABASE"),
+			Database: os.Getenv("DB_DATABASE"),
 			NumConns: "5",
 		},
 

@@ -1,6 +1,8 @@
 package postgres
 
 import (
+	"strings"
+
 	"github.com/sirupsen/logrus"
 	"github.com/wbrush/go-common/db"
 	"github.com/wbrush/mmhmm/configuration"
@@ -20,7 +22,7 @@ func NewPgDao(cfg *configuration.Config) (*PgDAO, error) {
 	}
 
 	err := d.Init(&cfg.DbParams)
-	if err != nil {
+	if err != nil && err.Error() != db.ErrNoShardsYet && !strings.Contains(err.Error(), "does not exist") {
 		return &d, err /// returning dao pointer (not nil) here is to process cluster init errors
 	}
 

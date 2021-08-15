@@ -47,8 +47,8 @@ func NewAPI(cfg *configuration.Config, swaggerPath string, dao dao.DataAccessObj
 	api := &API{
 		config: cfg,
 
-		host:        cfg.Host,
-		port:        cfg.Port,
+		host:        cfg.ServiceParams.Host,
+		port:        cfg.ServiceParams.Port,
 		swaggerPath: swaggerPath,
 
 		dao: dao,
