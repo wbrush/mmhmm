@@ -1,23 +1,29 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
+	"strconv"
 
+	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
+	"github.com/wbrush/go-common/errorhandler"
 	"github.com/wbrush/go-common/httphelper"
+	"github.com/wbrush/mmhmm/models"
 )
 
 var requestFunc = httphelper.MakeHTTPRequest
 
-// swagger:operation POST /notes entries createNote
+// swagger:operation POST /v1/notes notes createNote
 // ---
-// summary: Create new Template
-// description: returns new Template
+// summary: Create new Note
+// description: returns new Note
 // parameters:
 // - name: body
 //   in: body
-//   description: Template object that needs to be added
+//   description: Note object that needs to be added
 //   schema:
-//       $ref: "#/definitions/GlobalTemplateStruct"
+//     $ref: "#/definitions/NoteStruct"
 //   required: true
 // consumes:
 //   - application/json
@@ -27,59 +33,63 @@ var requestFunc = httphelper.MakeHTTPRequest
 //   200:
 //     description: "OK"
 //     schema:
-//       $ref: "#/definitions/GlobalTemplateStruct"
+//       $ref: "#/definitions/NoteStruct"
 func (api *API) CreateNote(w http.ResponseWriter, r *http.Request) {
-	// 	logrus.Debug("requested CreateTemplate")
+	logrus.Debug("requested CreateNote()")
 
-	// 	var newTemplate models.Notes
-	// 	decoder := json.NewDecoder(r.Body)
-	// 	err := decoder.Decode(&newTemplate)
-	// 	if err != nil {
-	// 		logrus.Warnf("wrong input data provided: %s", err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, "body"))
-	// 		return
-	// 	}
+	var newNote models.Note
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&newNote)
+	if err != nil {
+		logrus.Warnf("wrong input data provided: %s", err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, "body"))
+		return
+	}
 
-	// 	err = newTemplate.Validate()
-	// 	if err != nil {
-	// 		logrus.Warnf("Template data is invalid: %s", err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, "body"))
-	// 		return
-	// 	}
+	err = newNote.Validate()
+	if err != nil {
+		logrus.Warnf("Note data is invalid: %s", err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, "body"))
+		return
+	}
 
-	// 	//get shard id
-	// 	shards, shardsExists := r.Context().Value(httphelper.ShardsCtx).([]int64)
-	// 	if !shardsExists || len(shards) < 1 {
-	// 		logrus.Errorf("no %s value in request context. Probably middleware was not called?", httphelper.ShardsCtx)
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadRequest, httphelper.ShardsCtx))
-	// 		return
-	// 	}
+	author, found, err := api.dao.GetUserById(newNote.Author.Id)
+	if err == nil && found && author != nil { // TODO: normally would check to make sure the names match??
+		if newNote.Author.FirstName == "" {
+			newNote.Author.FirstName = author.FirstName
+		}
+		if newNote.Author.LastName == "" {
+			newNote.Author.LastName = author.LastName
+		}
+	}
 
-	// 	isDuplicate, err := api.dao.CreateTemplate(shards[0], &newTemplate)
-	// 	if err != nil {
-	// 		logrus.Errorf("Template creation error: %s", err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
-	// 		return
-	// 	}
-	// 	if isDuplicate {
-	// 		logrus.Errorf("Template already exist: %d", newTemplate.Id)
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrAlreadyExists, strconv.FormatInt(newTemplate.Id, 10)))
-	// 		return
-	// 	}
+	//  could pass in the author found flag but that can make it harder to change in the future. Don't think
+	//  this will slow it down noticeably but might want to check performance as development moves forward
+	isDuplicate, err := api.dao.CreateNote(&newNote)
+	if err != nil {
+		logrus.Errorf("Note creation error: %s", err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
+		return
+	}
+	if isDuplicate {
+		logrus.Errorf("Note already exist: %d", newNote.Id)
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrAlreadyExists, strconv.FormatInt(int64(newNote.Id), 10)))
+		return
+	}
 
-	// 	httphelper.Json(w, newTemplate)
-	// 	logrus.Trace("finished CreateTemplate")
-	// 	return
+	httphelper.Json(w, newNote)
+	logrus.Trace("finished CreateNote()")
+	return
 }
 
-// swagger:operation GET /notes/{id} entries getNote
+// swagger:operation GET /v1/notes/{id} notes getNote
 // ---
-// summary: Get Template by given id
-// description: returns Template
+// summary: Get note by given id
+// description: returns note
 // parameters:
 // - name: id
 //   in: path
-//   description: Numeric ID of the Template to get
+//   description: Numeric ID of the note to get
 //   type: number
 //   required: true
 // produces:
@@ -88,255 +98,177 @@ func (api *API) CreateNote(w http.ResponseWriter, r *http.Request) {
 //   200:
 //     description: "OK"
 //     schema:
-//       $ref: "#/definitions/GlobalTemplateStruct"
+//       $ref: "#/definitions/NoteStruct"
 func (api *API) GetNote(w http.ResponseWriter, r *http.Request) {
-	// 	logrus.Trace("requested GetTemplate")
+	logrus.Debug("requested GetNote()")
 
-	// 	ids := mux.Vars(r)["id"]
-	// 	id, err := strconv.ParseInt(ids, 10, 64)
-	// 	if err != nil {
-	// 		logrus.Warnf("wrong Template id %s provided: %s", ids, err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, ids))
-	// 		return
-	// 	}
+	ids := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(ids)
+	if err != nil {
+		logrus.Warnf("wrong note id %s provided: %s", ids, err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, ids))
+		return
+	}
 
-	// 	//get shard id
-	// 	shards, shardsExists := r.Context().Value(httphelper.ShardsCtx).([]int64)
-	// 	if !shardsExists || len(shards) < 1 {
-	// 		logrus.Errorf("no %s value in request context. Probably middleware was not called?", httphelper.ShardsCtx)
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadRequest, httphelper.ShardsCtx))
-	// 		return
-	// 	}
+	note, found, err := api.dao.GetNoteById(id)
+	if err != nil {
+		logrus.Errorf("Note id %d select error: %s", id, err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
+		return
+	}
+	if !found || note == nil {
+		logrus.Warnf("No such Note by id %d was found", id)
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrNotFound, ids))
+		return
+	}
 
-	// 	template, found, err := api.dao.GetTemplateById(shards[0], id)
-	// 	if err != nil {
-	// 		logrus.Errorf("Template id %d select error: %s", id, err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
-	// 		return
-	// 	}
-	// 	if !found || template == nil {
-	// 		logrus.Warnf("No such Template by id %d was found", id)
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrNotFound, ids))
-	// 		return
-	// 	}
-
-	// 	httphelper.Json(w, template)
-	// 	logrus.Trace("finished GetTemplate")
-	// 	return
+	httphelper.Json(w, note)
+	logrus.Debug("finished GetNote()")
+	return
 }
 
-// swagger:operation GET /notes entries listNotes
+// swagger:operation GET /v1/notes notes listNotes
 // ---
-//description: returns Templates list
-//produces:
-//- application/json
-//tags:
-//- Template
-//summary: Return list of Templates
-//operationId: listTemplates
-//parameters:
-//- in: query
-//  name: first
-//  description: how many objects must to return
-//  schema:
-//    type: integer
-//- in: query
-//  name: after
-//  description: cursor of object that must to be returned
-//  schema:
-//    type: string
-//- in: query
-//  name: orderBy
-//  description: on which field results must to be ordered
-//  schema:
-//    type: string
-//- in: query
-//  name: filters
-//  description: 'filters on fields, which can be provided in format described here:
-//    https://godoc.org/github.com/go-pg/pg/urlvalues#Filter'
-//  schema:
-//    type: object
-//responses:
-//  '200':
-//    description: OK
-//    schema:
-//      type: array
-//      items:
-//        "$ref": "#/definitions/GlobalList"
+// description: returns notes list
+// produces:
+//   - application/json
+// summary: Return list of notes
+// parameters:
+// - in: query
+//   name: authorId
+//   description: authors user id to filter by
+//   schema:
+//     type: string
+// responses:
+//   '200':
+//     description: OK
+//     schema:
+//       type: array
+//       items:
+//         "$ref": "#/definitions/NoteStruct"
 func (api *API) ListNotes(w http.ResponseWriter, r *http.Request) {
-	// 	logrus.Trace("requested ListTemplates")
+	logrus.Debug("requested ListNotes()")
 
-	// 	//get shard id
-	// 	shards, shardsExists := r.Context().Value(httphelper.ShardsCtx).([]int64)
-	// 	if !shardsExists || len(shards) < 1 {
-	// 		logrus.Errorf("no %s value in request context. Probably middleware was not called?", httphelper.ShardsCtx)
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadRequest, httphelper.ShardsCtx))
-	// 		return
-	// 	}
+	notes, err := api.dao.ListNotes(r.URL.Query())
+	if err != nil {
+		logrus.Errorf("ListNotes list select error: %s", err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
+		return
+	}
 
-	// 	Templates, total, hasNext, err := api.dao.ListTemplates(shards[0], r.URL.Query())
-	// 	if err != nil {
-	// 		logrus.Errorf("ListTemplateEntries list select error: %s", err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
-	// 		return
-	// 	}
-
-	// 	var list cdatamodels.List
-	// 	list.TotalCount = total
-	// 	list.Edges = make([]cdatamodels.Edge, 0)
-	// 	for i := range Templates {
-	// 		list.Edges = append(list.Edges, cdatamodels.Edge{
-	// 			Node:   Templates[i],
-	// 			Cursor: db.EncodeIdToCursor(Templates[i].Id),
-	// 		})
-	// 	}
-
-	// 	list.PageInfo.HasNextPage = hasNext
-	// 	if len(Templates) > 0 {
-	// 		list.PageInfo.EndCursor = db.EncodeIdToCursor(Templates[len(Templates)-1].Id)
-	// 	}
-
-	// 	httphelper.Json(w, list)
-	// 	logrus.Trace("finished ListTemplates")
-	// 	return
+	httphelper.Json(w, notes)
+	logrus.Trace("finished ListNotes()")
+	return
 }
 
-// swagger:operation PUT /notes/{id} entries updateNote
+// swagger:operation PUT /v1/notes/{id} notes updateNote
 // ---
-//summary: Update Template by given id
-//description: returns Template
-//parameters:
-//- name: id
-//  in: path
-//  description: Numeric ID of the Template to update
-//  type: number
-//  required: true
-//- name: body
-//  in: body
-//  description: Template update object that needs to be updated
-//  schema:
-//  $ref: "#/definitions/GlobalTemplateUpdateStruct"
-//  required: true
-//produces:
-//  - application/json
-//responses:
-//  200:
-//    description: "OK"
-//    schema:
-//      $ref: "#/definitions/GlobalTemplateStruct"
+// summary: Update Note by given id
+// description: returns Note
+// parameters:
+// - name: id
+//   in: path
+//   description: Numeric ID of the Note to update
+//   type: number
+//   required: true
+// - name: body
+//   in: body
+//   description: Note update object that needs to be updated
+//   schema:
+//   $ref: "#/definitions/NoteStruct"
+//   required: true
+// produces:
+//   - application/json
+// responses:
+//   200:
+//     description: "OK"
+//     schema:
+//       $ref: "#/definitions/NoteStruct"
 func (api *API) UpdateNote(w http.ResponseWriter, r *http.Request) {
-	// 	logrus.Trace("requested UpdateTemplate")
+	logrus.Debug("requested UpdateNote()")
 
-	// 	ids := mux.Vars(r)["id"]
-	// 	id, err := strconv.ParseInt(ids, 10, 64)
-	// 	if err != nil {
-	// 		logrus.Warnf("wrong pii info id %s provided by pii: %s", ids, err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, ids))
-	// 		return
-	// 	}
+	ids := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(ids)
+	if err != nil {
+		logrus.Warnf("Error: wrong id %s: %s", ids, err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, ids))
+		return
+	}
 
-	// 	//get shard id
-	// 	shards, shardsExists := r.Context().Value(httphelper.ShardsCtx).([]int64)
-	// 	if !shardsExists || len(shards) < 1 {
-	// 		logrus.Errorf("no %s value in request context. Probably middleware was not called?", httphelper.ShardsCtx)
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadRequest, httphelper.ShardsCtx))
-	// 		return
-	// 	}
+	var updNote models.Note
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&updNote)
+	if err != nil {
+		logrus.Warnf("wrong input data provided: %s", err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, "body"))
+		return
+	}
 
-	// 	template, found, err := api.dao.GetTemplateById(shards[0], id)
-	// 	if err != nil {
-	// 		logrus.Errorf("Template id %d select error: %s", id, err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
-	// 		return
-	// 	}
-	// 	if !found || template == nil {
-	// 		logrus.Warnf("No such Template by id %d was found", id)
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrNotFound, ids))
-	// 		return
-	// 	}
+	if updNote.Id >= 0 {
+		updNote.Id = id
+	}
 
-	// 	var updTemplate datamodels.TemplateUpdate
-	// 	decoder := json.NewDecoder(r.Body)
-	// 	err = decoder.Decode(&updTemplate)
-	// 	if err != nil {
-	// 		logrus.Warnf("wrong input data provided: %s", err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, "body"))
-	// 		return
-	// 	}
+	err = api.dao.UpdateNoteById(&updNote)
+	if err != nil {
+		logrus.Errorf("Note with id %d update error: %s", id, err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
+		return
+	}
 
-	// 	isFoundUpd, err := helpers.NullableFieldsToStruct(updTemplate, template)
-	// 	if err != nil {
-	// 		logrus.Warnf("cannot fill updateable fields: %s", err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
-	// 		return
-	// 	}
-	// 	if !isFoundUpd {
-	// 		logrus.Infof("nothing to update for Template %d", template.Id)
-	// 		httphelper.Json(w, template)
-	// 		return
-	// 	}
+	note := &models.Note{}
+	note, _, err = api.dao.GetNoteById(id)
+	if err != nil {
+		logrus.Errorf("Note with id %d read error: %s", id, err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
+		return
+	}
 
-	// 	err = api.dao.UpdateTemplate(shards[0], template)
-	// 	if err != nil {
-	// 		logrus.Errorf("Template with id %d update error: %s", id, err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
-	// 		return
-	// 	}
-
-	// 	httphelper.Json(w, template)
-	// 	logrus.Trace("finished UpdateTemplate")
-	// 	return
+	httphelper.Json(w, note)
+	logrus.Debug("finished UpdateNote()")
+	return
 }
 
-// swagger:operation DELETE /notes/{id} entries DeleteNote
+// swagger:operation DELETE /v1/notes/{id} notes DeleteNote
 // ---
-//summary: Delete Template by given id
-//description: returns id
-//parameters:
-//- name: id
-// in: path
-// description: Numeric ID of the Template to delete
-// type: number
-// required: true
-//produces:
-//  - application/json
-//responses:
-//  200:
-//    description: "id"
-//    schema:
-//      type: integer
+// summary: Delete Template by given id
+// description: returns id
+// parameters:
+//   - name: id
+//     in: path
+//     description: Numeric ID of the Template to delete
+//     type: number
+//     required: true
+// produces:
+//   - application/json
+// responses:
+//   200:
+//     description: "id"
+//     schema:
+//       type: integer
 func (api *API) DeleteNote(w http.ResponseWriter, r *http.Request) {
-	// 	logrus.Trace("requested DeleteTemplate")
+	logrus.Debug("requested DeleteNote()")
 
-	// 	ids := mux.Vars(r)["id"]
-	// 	id, err := strconv.ParseInt(ids, 10, 64)
-	// 	if err != nil {
-	// 		logrus.Warnf("wrong Template id %s provided: %s", ids, err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, ids))
-	// 		return
-	// 	}
+	ids := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(ids)
+	if err != nil {
+		logrus.Warnf("wrong note id %s provided: %s", ids, err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadParam, ids))
+		return
+	}
 
-	// 	//get shard id
-	// 	shards, shardsExists := r.Context().Value(httphelper.ShardsCtx).([]int64)
-	// 	if !shardsExists || len(shards) < 1 {
-	// 		logrus.Errorf("no %s value in request context. Probably middleware was not called?", httphelper.ShardsCtx)
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrBadRequest, httphelper.ShardsCtx))
-	// 		return
-	// 	}
+	found, err := api.dao.DeleteNoteById(id)
+	if err != nil {
+		logrus.Errorf("note id %d delete error: %s", id, err.Error())
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
+		return
+	}
+	if !found {
+		logrus.Warnf("No such note by id %d was found", id)
+		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrNotFound, ids))
+		return
+	}
 
-	// 	found, err := api.dao.DeleteTemplateById(shards[0], id)
-	// 	if err != nil {
-	// 		logrus.Errorf("Template id %d delete error: %s", id, err.Error())
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrService))
-	// 		return
-	// 	}
-	// 	if !found {
-	// 		logrus.Warnf("No such Template by id %d was found", id)
-	// 		httphelper.JsonError(w, errorhandler.NewError(errorhandler.ErrNotFound, ids))
-	// 		return
-	// 	}
-
-	// 	httphelper.Json(w, map[string]interface{}{"id": id})
-	// 	logrus.Trace("finished DeleteTemplate")
-	// 	return
+	httphelper.Json(w, map[string]interface{}{"id": id})
+	logrus.Debug("finished DeleteNote()")
+	return
 }

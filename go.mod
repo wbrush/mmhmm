@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/go-pg/pg v8.0.7+incompatible
+	github.com/go-pg/pg/v9 v9.2.1
 	github.com/go-pg/urlstruct v1.0.1
 	github.com/golang/mock v1.6.0
 	github.com/gorilla/mux v1.8.0

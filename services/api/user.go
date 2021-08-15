@@ -119,18 +119,6 @@ func (api *API) GetUser(w http.ResponseWriter, r *http.Request) {
 // produces:
 //   - application/json
 // summary: Return list of users
-// parameters:
-// - in: query
-//   name: orderBy
-//   description: on which field results must to be ordered
-//   schema:
-//     type: string
-// - in: query
-//   name: filters
-//   description: 'filters on fields, which can be provided in format described here:
-//     https://godoc.org/github.com/go-pg/pg/urlvalues#Filter'
-//   schema:
-//     type: object
 // responses:
 //   '200':
 //     description: OK

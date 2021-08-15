@@ -1,13 +1,10 @@
 package postgres
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"net/url"
 
 	"github.com/go-pg/pg"
-	"github.com/go-pg/urlstruct"
 	"github.com/wbrush/go-common/db"
 	"github.com/wbrush/mmhmm/models"
 )
@@ -42,31 +39,7 @@ func (d *PgDAO) GetUserById(id int) (user *models.User, isFound bool, err error)
 func (d *PgDAO) ListUsers(filters url.Values) (list []models.User, err error) {
 	list = make([]models.User, 0)
 
-	//  NOTE: this is case sensitive. Need to use the new method if want case insensitive queries
-	pf, err := db.PrepareFiltersByModel(filters, models.User{})
-	if err != nil {
-		return list, err
-	}
-	//also check unknown fields errors
-	if len(pf.Errors) > 0 {
-		return list, fmt.Errorf("%v", pf.Errors)
-	}
-
-	f := new(models.User)
-	err = urlstruct.Unmarshal(context.Background(), pf.Prepared, f)
-	if err != nil {
-		return list, err
-	}
-
-	q := d.BaseDB.Model(&list).
-		WhereStruct(f)
-
-	q, err = db.ApplyDefaultFilters(q, pf.Prepared)
-	if err != nil {
-		return list, err
-	}
-
-	err = q.Select()
+	err = d.BaseDB.Model(&list).Select()
 	if err != nil && err != pg.ErrNoRows {
 		return list, err
 	}

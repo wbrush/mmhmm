@@ -51,90 +51,6 @@
         }
       }
     },
-    "/notes": {
-      "get": {
-        "tags": [
-          "entries"
-        ],
-        "operationId": "listNotes"
-      },
-      "post": {
-        "description": "returns new Template",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "entries"
-        ],
-        "summary": "Create new Template",
-        "operationId": "createNote",
-        "parameters": [
-          {
-            "description": "Template object that needs to be added",
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/GlobalTemplateStruct"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/GlobalTemplateStruct"
-            }
-          }
-        }
-      }
-    },
-    "/notes/{id}": {
-      "get": {
-        "description": "returns Template",
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "entries"
-        ],
-        "summary": "Get Template by given id",
-        "operationId": "getNote",
-        "parameters": [
-          {
-            "type": "number",
-            "description": "Numeric ID of the Template to get",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/GlobalTemplateStruct"
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "entries"
-        ],
-        "operationId": "updateNote"
-      },
-      "delete": {
-        "description": "Numeric ID of the Template to delete",
-        "tags": [
-          "entries"
-        ],
-        "operationId": "DeleteNote"
-      }
-    },
     "/ping": {
       "get": {
         "description": "returns clean JSON object to check that everything is fine",
@@ -162,6 +78,166 @@
         }
       }
     },
+    "/v1/notes": {
+      "get": {
+        "description": "returns notes list",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notes"
+        ],
+        "summary": "Return list of notes",
+        "operationId": "listNotes",
+        "parameters": [
+          {
+            "description": "authors user id to filter by",
+            "name": "authorId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/NoteStruct"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "description": "returns new Note",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notes"
+        ],
+        "summary": "Create new Note",
+        "operationId": "createNote",
+        "parameters": [
+          {
+            "description": "Note object that needs to be added",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/NoteStruct"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/NoteStruct"
+            }
+          }
+        }
+      }
+    },
+    "/v1/notes/{id}": {
+      "get": {
+        "description": "returns note",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notes"
+        ],
+        "summary": "Get note by given id",
+        "operationId": "getNote",
+        "parameters": [
+          {
+            "type": "number",
+            "description": "Numeric ID of the note to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/NoteStruct"
+            }
+          }
+        }
+      },
+      "put": {
+        "description": "returns Note",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notes"
+        ],
+        "summary": "Update Note by given id",
+        "operationId": "updateNote",
+        "parameters": [
+          {
+            "type": "number",
+            "description": "Numeric ID of the Note to update",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "$ref": "#/definitions/NoteStruct",
+            "description": "Note update object that needs to be updated",
+            "name": "body",
+            "in": "body",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/NoteStruct"
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "returns id",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notes"
+        ],
+        "summary": "Delete Template by given id",
+        "operationId": "DeleteNote",
+        "parameters": [
+          {
+            "type": "number",
+            "description": "Numeric ID of the Template to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "id",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
     "/v1/users": {
       "get": {
         "description": "returns users list",
@@ -173,24 +249,6 @@
         ],
         "summary": "Return list of users",
         "operationId": "listUsers",
-        "parameters": [
-          {
-            "description": "on which field results must to be ordered",
-            "name": "orderBy",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "filters on fields, which can be provided in format described here: https://godoc.org/github.com/go-pg/pg/urlvalues#Filter",
-            "name": "filters",
-            "in": "query",
-            "schema": {
-              "type": "object"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -388,6 +446,25 @@
       },
       "x-go-name": "JsonValues",
       "x-go-package": "github.com/wbrush/mmhmm/services/api"
+    },
+    "NoteStruct": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/UserStruct"
+        },
+        "note": {
+          "type": "string",
+          "x-go-name": "Note"
+        },
+        "noteId": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Id"
+        }
+      },
+      "x-go-name": "Note",
+      "x-go-package": "github.com/wbrush/mmhmm/models"
     },
     "UserStruct": {
       "type": "object",

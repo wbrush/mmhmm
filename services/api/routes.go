@@ -70,4 +70,47 @@ func (api *API) initRoutes(wrapper *negroni.Negroni) {
 			// Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
 		},
 	})
+	api.HandleActions(wrapper, configuration.APIBasePath+configuration.APIVersion, []Route{
+		//  application specific - Notes
+		{
+			Name:        "Create Note",
+			Method:      "POST",
+			Pattern:     NotesPath,
+			HandlerFunc: api.CreateNote,
+			Middleware:  nil,
+			// Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
+		},
+		{
+			Name:        "Get Note",
+			Method:      "GET",
+			Pattern:     NotesPath + "/{id}",
+			HandlerFunc: api.GetNote,
+			Middleware:  nil,
+			// Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
+		},
+		{
+			Name:        "List Notes",
+			Method:      "GET",
+			Pattern:     NotesPath,
+			HandlerFunc: api.ListNotes,
+			Middleware:  nil,
+			// Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
+		},
+		{
+			Name:        "Update Note",
+			Method:      "PUT",
+			Pattern:     NotesPath + "/{id}",
+			HandlerFunc: api.UpdateNote,
+			Middleware:  nil,
+			// Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
+		},
+		{
+			Name:        "Remove Note",
+			Method:      "DELETE",
+			Pattern:     NotesPath + "/{id}",
+			HandlerFunc: api.DeleteNote,
+			Middleware:  nil,
+			// Middleware:  []negroni.HandlerFunc{httphelper.MWUserInfoHeader},
+		},
+	})
 }

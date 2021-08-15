@@ -1,143 +1,159 @@
 package postgres
 
 import (
+	"errors"
+	"net/url"
+	"strconv"
+
+	"github.com/go-pg/pg/v9"
+	"github.com/sirupsen/logrus"
+	"github.com/wbrush/go-common/db"
 	"github.com/wbrush/mmhmm/models"
 )
 
-func (d *PgDAO) CreateNote(shardId int64, template *models.Note) (isDuplicate bool, err error) {
-	// err = d.Cluster.Shard(shardId).RunInTransaction(func(tx *pg.Tx) error {
-	// 	err = tx.Insert(template)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+func (d *PgDAO) CreateNote(note *models.Note) (isDuplicate bool, err error) {
+	err = d.BaseDB.RunInTransaction(func(tx *pg.Tx) error {
+		//  see if author exists
+		_, found, err := d.GetUserById(note.Author.Id)
 
-	// 	template.TemplateSelf = d.buildSelfPath(template.Id)
+		//  if not, add them
+		if !found || note.Author.Id <= 0 {
+			logrus.Debug("adding author %s %s", note.Author.FirstName, note.Author.LastName)
+			_, err = d.CreateUser(note.Author)
+			if err != nil {
+				return errors.New("Error Creating User: " + err.Error())
+			}
+		}
 
-	// 	err = tx.Update(template)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+		note.UserId = note.Author.Id
+		err = tx.Insert(note)
+		if err != nil {
+			return err
+		}
 
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	if db.CheckIfDuplicateError(err) {
-	// 		return true, nil
-	// 	}
-	// 	return false, err
-	// }
+		return nil
+	})
+	if err != nil {
+		if db.CheckIfDuplicateError(err) {
+			return true, nil
+		}
+		return false, err
+	}
 
 	return false, nil
 }
 
-// func (d *PgDAO) GetTemplateById(shardId int64, id int64) (template *datamodels.Template, isFound bool, err error) {
-// 	if !d.ValidateCluster(shardId) {
-// 		err = errors.New("cluster is not ready yet")
-// 		return
-// 	}
+func (d *PgDAO) GetNoteById(id int) (note *models.Note, isFound bool, err error) {
+	err = d.BaseDB.RunInTransaction(func(tx *pg.Tx) error {
+		//  get note
+		note = &models.Note{Id: id}
+		err = d.BaseDB.Model(note).WherePK().Select()
+		if err != nil {
+			return err
+		}
 
-// 	template = &datamodels.Template{Id: id}
-// 	err = d.Cluster.Shard(shardId).Select(template)
-// 	if err != nil {
-// 		if err == pg.ErrNoRows {
-// 			return nil, false, nil
-// 		}
-// 		return nil, false, err
-// 	}
+		//  get author
+		note.Author = &models.User{Id: note.UserId}
+		err = d.BaseDB.Model(note.Author).WherePK().Select()
+		if err != nil {
+			return err
+		}
 
-// 	selfPath := d.buildSelfPath(template.Id)
+		return nil
+	})
+	if err != nil {
+		if err == pg.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
 
-// 	//TODO really need this?
-// 	if !strings.EqualFold(template.TemplateSelf, selfPath) {
-// 		//means self path changed
-// 		template.TemplateSelf = selfPath
-// 		err = d.Cluster.Shard(shardId).Update(template)
-// 		if err != nil {
-// 			return template, true, err
-// 		}
-// 	}
+	return note, true, nil
+}
 
-// 	return template, true, nil
-// }
+// ListTemplates returns empty array if nothing was found
+func (d *PgDAO) ListNotes(filters url.Values) (list []models.Note, err error) {
+	list = make([]models.Note, 0)
 
-// // ListTemplates returns empty array if nothing was found
-// func (d *PgDAO) ListTemplates(shardId int64, filters url.Values) (list []datamodels.Template, total int, hasMore bool, err error) {
-// 	if !d.ValidateCluster(shardId) {
-// 		err = errors.New("cluster is not ready yet")
-// 		return
-// 	}
+	//  there is a cleaner way to do this using functions and q.Apply() below. But this way works for a single case
+	authorFilter, authorOk := filters["authorId"]
+	desiredAuthor := 0
+	if authorOk {
+		if len(authorFilter) <= 0 {
+			authorOk = false
+		} else {
+			//  set up filter
+			desiredAuthor, err = strconv.Atoi(authorFilter[0])
+			if err != nil {
+				return list, err
+			}
+		}
 
-// 	list = make([]datamodels.Template, 0)
-// 	hasMore = false
+		//  delete this key
+		delete(filters, "authorId")
+	}
 
-// 	pf, err := db.PrepareFiltersByModel(filters, datamodels.Template{})
-// 	if err != nil {
-// 		return list, 0, hasMore, err
-// 	}
-// 	//also check unknown fields errors
-// 	if len(pf.Errors) > 0 {
-// 		return list, 0, hasMore, fmt.Errorf("%v", pf.Errors)
-// 	}
+	err = d.BaseDB.RunInTransaction(func(tx *pg.Tx) error {
+		q := d.BaseDB.Model(&list)
+		if authorOk {
+			q = q.Where("user_id = ?", desiredAuthor)
+		}
+		err = q.Select()
+		if err != nil && err != pg.ErrNoRows {
+			return err
+		}
 
-// 	f := new(datamodels.TemplateFilter)
-// 	err = urlstruct.Unmarshal(context.Background(), pf.Prepared, f)
-// 	if err != nil {
-// 		return list, 0, hasMore, err
-// 	}
+		//  get authors
+		idList := make([]int, 0)
+		for i := range list {
+			idList = append(idList, list[i].UserId)
+		}
+		authors := make([]models.User, 0)
+		err = d.BaseDB.Model(&authors).Where("id in (?)", pg.In(idList)).Select()
+		if err != nil {
+			return err
+		}
 
-// 	q := d.Cluster.Shard(shardId).Model(&list).
-// 		WhereStruct(f).
-// 		Limit(f.Pager.Limit).
-// 		Offset(f.Pager.GetOffset())
+		authorsMap := make(map[int]models.User)
+		for _, author := range authors {
+			authorsMap[author.Id] = author
+		}
+		for i := range list {
+			newAuthor := authorsMap[list[i].UserId]
+			list[i].Author = &newAuthor
+		}
 
-// 	q, err = db.ApplyDefaultFilters(q, pf.Prepared)
-// 	if err != nil {
-// 		return list, 0, hasMore, err
-// 	}
+		return nil
+	})
+	if err != nil {
+		if err == pg.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
 
-// 	total, err = q.SelectAndCount()
-// 	if err != nil && err != pg.ErrNoRows {
-// 		return list, total, hasMore, err
-// 	}
+	return list, nil
+}
 
-// 	if len(list) > 0 {
-// 		hasMore, err = q.Where("?TableAlias.id > ?", list[len(list)-1].Id).Exists()
-// 		if err != nil && err != pg.ErrNoRows {
-// 			return list, total, hasMore, err
-// 		}
-// 	}
+func (d *PgDAO) UpdateNoteById(note *models.Note) (err error) {
+	//  all they can do here is edit the text in the note! Until the datamodels or requirements change
+	_, err = d.BaseDB.Model(note).WherePK().Set("note = ?", note.Note).Update()
+	if err != nil {
+		return err
+	}
 
-// 	return list, total, hasMore, nil
-// }
+	return nil
+}
 
-// func (d *PgDAO) UpdateTemplate(shardId int64, template *datamodels.Template) (err error) {
-// 	if !d.ValidateCluster(shardId) {
-// 		err = errors.New("cluster is not ready yet")
-// 		return
-// 	}
+func (d *PgDAO) DeleteNoteById(id int) (isFound bool, err error) {
+	note := models.Note{Id: id}
+	res, err := d.BaseDB.Model(&note).WherePK().Delete()
+	if err != nil {
+		return false, err
+	}
+	if res.RowsAffected() == 0 {
+		return false, nil
+	}
 
-// 	err = d.Cluster.Shard(shardId).Update(template)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-// func (d *PgDAO) DeleteTemplateById(shardId int64, id int64) (isFound bool, err error) {
-// 	if !d.ValidateCluster(shardId) {
-// 		err = errors.New("cluster is not ready yet")
-// 		return
-// 	}
-
-// 	template := datamodels.Template{Id: id}
-// 	res, err := d.Cluster.Shard(shardId).Model(&template).WherePK().Delete()
-// 	if err != nil {
-// 		return false, err
-// 	}
-// 	if res.RowsAffected() == 0 {
-// 		return false, nil
-// 	}
-
-// 	return true, nil
-// }
+	return true, nil
+}

@@ -9,11 +9,11 @@ import (
 
 type (
 	Notes interface {
-		// CreateTemplate(shardID int64, template *datamodels.Template) (isDuplicate bool, err error)
-		// GetTemplateById(shardID int64, id int64) (template *datamodels.Template, isFound bool, err error)
-		// ListTemplates(shardID int64, filters url.Values) (templates []datamodels.Template, total int, hasMore bool, err error)
-		// UpdateTemplate(shardID int64, template *datamodels.Template) (err error)
-		// DeleteTemplateById(shardID int64, id int64) (isFound bool, err error)
+		CreateNote(note *models.Note) (isDuplicate bool, err error)
+		GetNoteById(id int) (note *models.Note, isFound bool, err error)
+		ListNotes(filters url.Values) (list []models.Note, err error)
+		UpdateNoteById(note *models.Note) (err error)
+		DeleteNoteById(id int) (isFound bool, err error)
 	}
 
 	Users interface {
