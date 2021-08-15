@@ -15,10 +15,10 @@ The only constraint on the project is that you should use the Go programming lan
 you may use any tools and frameworks that you wish. All of your work should, of course, be your own
 original creation, but you’re free to use any sources you wish to research and learn.
 To keep the project relatively simple, we have a couple of recommendations:
-● Don’t worry about deployment as part of this project - you don’t need to show us how the
+- Don’t worry about deployment as part of this project - you don’t need to show us how the
 software runs on AWS or GCP. You should, however, plan to talk about how you’d deploy and
 operate an API like this when we review your work.
-● Feel free to simplify the persistence layer by using a simple in-memory database like
+- Feel free to simplify the persistence layer by using a simple in-memory database like
 go-memdb. Again, plan to talk about what a production approach to persistence might look like.
 You may work on this project on your own time. There is no time limit on the project, but we wouldn’t
 expect it to take more than 4 hours. When you’re ready, we will set up a 45-minute call for you to walk
@@ -42,7 +42,11 @@ Some unit tests have been written for the packages in this service.
 
 ## Integration Testing
 Since the project stated not to worry about deployment, this was not done. However, the framework allows for running integration tests in a docker container with the DB running in another container as part of the deployment pipeline. These
-tests is where I usually test REST endpoints that hit the DB since I prefer to know that the code is working with the DB and not using a mocked return value that I feel is the right data.
+tests is where I usually test REST endpoints that hit the DB since I prefer to know that the code is working with the DB and not using a mocked return value that I feel is the right data. Integration tests are added to the "integration" subdirectory
+which has been left for clarity.
+
+Note: one area that I feel often generates problems is accessing submodels inside of a parent model (like the author inside of note in this example). The integration tests would validate that the DB routines were returning the proper data including
+the associated author for each note record.
 
 ## Developer Notes
 These are notes that I recommend providing to the next dev who might be working on this.
@@ -73,6 +77,12 @@ go get -u github.com/gorilla/handlers
 Framework for logging.
 
 go get -u github.com/sirupsen/logrus
+
+### go-common
+Framework I built for doing golang based development. Has various helpers and packages that I use to speed up code development. It's not documented well since I usually cut and paste the code into my personal projects. I moved it to github
+for this coding test so it would be available for me to use on this and any future coding tests.
+
+go get -u github.com/wbrush/go-common
 
 # Deployment
 Need to document (and/or update) the deployment process here

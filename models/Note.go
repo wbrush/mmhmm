@@ -6,6 +6,8 @@ import (
 	"fmt"
 )
 
+const NoteValidationAuthorMissingError = "Note does not have an Author!"
+
 // swagger:model NoteStruct
 type Note struct {
 	tableName struct{} `sql:"notes"`
@@ -24,7 +26,7 @@ func (t Note) Validate() error {
 
 	// TODO: add here some expected validation rules
 	if t.Author == nil {
-		return errors.New("Note does not have an Author!")
+		return errors.New(NoteValidationAuthorMissingError)
 	}
 
 	return nil

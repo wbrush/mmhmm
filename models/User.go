@@ -1,4 +1,3 @@
-//TODO: NOTICE: this is usually placed in datamodels package of go-common lib!
 package models
 
 import (
